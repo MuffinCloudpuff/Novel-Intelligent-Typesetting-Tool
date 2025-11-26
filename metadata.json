@@ -1,0 +1,5 @@
+{
+  "name": "Sentencify - 智能句号排版器",
+  "description": "自动识别中英文句号，实现'一句一段'的排版格式。支持本地即时排版与Gemini智能语义排版。",
+  "requestFramePermissions": []
+}
