@@ -22,7 +22,8 @@ const App: React.FC = () => {
 
   // Stats calculation
   const inputCount = input.length;
-  const sentenceCount = countSentences(input);
+  // Calculate output paragraphs based on actual double newlines
+  const outputParagraphs = output ? output.split(/\n\s*\n/).filter(line => line.trim().length > 0).length : 0;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newVal = e.target.value;
@@ -160,7 +161,7 @@ const App: React.FC = () => {
             placeholder="排版后的结果将显示在这里..."
             value={output}
             readOnly
-            stats={output ? `${sentenceCount} 个段落` : ''}
+            stats={output ? `${outputParagraphs} 个段落` : ''}
             className="flex-grow"
             style={{ backgroundColor: '#fafafa' }} // Slightly different bg to distinguish output
           />
@@ -182,7 +183,7 @@ const App: React.FC = () => {
 
       {/* Footer Info */}
       <footer className="px-6 py-3 text-center md:text-right text-xs text-slate-400 border-t border-slate-200 bg-slate-50">
-        识别中文(。)与英文(.)句号 • 自动插入空行
+        识别中文(。)与英文(.)句号 • 自动保护引号内容
       </footer>
     </div>
   );

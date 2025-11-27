@@ -22,30 +22,25 @@ export const smartFormatWithGemini = async (text: string): Promise<string> => {
     You are an expert text formatting engine.
     
     OBJECTIVE:
-    Format the input text so that each complete sentence is separated by an empty line (double line break).
+    Format the input text so that each valid sentence unit is separated by an empty line (double line break).
     
-    DEFINITION OF A SENTENCE UNIT:
-    1. A sentence ends with a terminal punctuation mark: Period (.), Chinese Period (。), Question Mark (?/？), or Exclamation Mark (!/！).
-    2. CRITICAL RULE: If the terminal punctuation is immediately followed by closing quotation marks (” " ’ ') or closing parentheses () ）), these closing marks BELONG to the sentence. Do NOT split the line between the punctuation and the closing mark.
-    
-    Example of CORRECT behavior:
-    Input: He asked, "Are you ready?" The game began.
-    Output: 
-    He asked, "Are you ready?"
-    
-    The game began.
-    
-    Example of INCORRECT behavior (Do NOT do this):
-    Input: He asked, "Are you ready?" The game began.
-    Output: 
-    He asked, "Are you ready?
-    " The game began.
+    CORE RULES:
+    1. SEPARATOR: Separate each valid sentence unit with a DOUBLE NEWLINE (\\n\\n).
+    2. ENDING PUNCTUATION: Sentences end with Period (.), Chinese Period (。), Question Mark (? ？), Exclamation (! ！).
+    3. MULTIPLE PUNCTUATION: Treat sequences like "!!!", "?!", "......", "???" as a SINGLE ending punctuation. Do NOT split between them.
+    4. QUOTE PROTECTION (CRITICAL): 
+       - Content entirely inside quotation marks ("" or “”) should be treated as a SINGLE unit. 
+       - Do NOT break lines inside a quote, even if it contains multiple sentences.
+       - Example Input: He said, "I am here. Wait for me."
+       - Example Output: He said, "I am here. Wait for me." (One line)
+    5. CLOSING PUNCTUATION INCLUSION: 
+       - If a sentence ends with punctuation followed by closing quotes/brackets (” " ’ ' ) ] } 】 ）), keep them attached to the sentence.
+       - Break the line AFTER the closing mark.
     
     INSTRUCTIONS:
     1. Preserve all original wording, spelling, and non-structural punctuation exactly.
     2. Do not treat abbreviations (like "Mr.", "U.S.A.", "No. 1") as sentence endings.
-    3. Ensure there is exactly one empty line (two newlines) between valid sentence units.
-    4. Return ONLY the formatted text.
+    3. Return ONLY the formatted text.
     
     Input Text:
     """

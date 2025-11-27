@@ -1,37 +1,86 @@
 /**
- * Performs basic regex-based formatting.
+ * Performs basic formatting with state-aware parsing.
  * Rules:
  * 1. Normalize line breaks.
- * 2. Identify Chinese (。) and English (.) periods, question marks, and exclamation marks.
- * 3. CRITICAL: Include closing quotation marks or brackets if they immediately follow the punctuation.
- * 4. Add double newline after the complete sentence unit.
+ * 2. Identify sentence endings (., ?, !, etc.).
+ * 3. Handle multiple punctuation (e.g., ?!, !!!).
+ * 4. CRITICAL: Protect content inside quotes (do not split sentences inside quotes).
+ * 5. Include closing quotation marks or brackets if they immediately follow the punctuation.
+ * 6. Add double newline after the complete sentence unit.
  */
 export const basicFormat = (text: string): string => {
   if (!text) return '';
 
-  let processed = text;
-
-  // Regex Explanation:
-  // ([。\.?!？！])       -> Group 1: Match sentence ending punctuation (periods, question marks, exclamation marks).
-  // ([”"’'\)）\]】]*)    -> Group 2: Match zero or more closing quotes, apostrophes, or brackets immediately following the punctuation.
-  // \s*                 -> Match any trailing whitespace (spaces, tabs, newlines).
-  //
-  // Replacement:
-  // $1$2\n\n            -> Reconstruct the sentence (Punctuation + Quotes) followed by two newlines (one empty line).
+  const chunks: string[] = [];
+  let buffer = '';
   
-  processed = processed.replace(/([。\.?!？！])([”"’'\)）\]】]*)\s*/g, '$1$2\n\n');
+  // State for quotes
+  let inSmartQuote = 0; // Tracks nesting for “” ‘’
+  let inStraightQuote = false; // Toggles for ""
 
-  // Cleanup: Remove triple+ newlines if they were created accidentally
-  // This ensures we have exactly one empty line between paragraphs.
-  processed = processed.replace(/\n{3,}/g, '\n\n');
+  // Helpers
+  const isPunctuation = (c: string) => /[。\.?!？！]/.test(c);
+  const isClosingPunctuation = (c: string) => /[”"’'\)）\]】]/.test(c);
+  const isOpener = (c: string) => /[“‘]/.test(c);
+  const isCloser = (c: string) => /[”’]/.test(c);
 
-  // Trim start/end to avoid empty whitespace at the top/bottom of the text area
-  return processed.trim();
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    buffer += char;
+
+    // 1. Update Quote State
+    if (isOpener(char)) {
+      inSmartQuote++;
+    } else if (isCloser(char)) {
+      if (inSmartQuote > 0) inSmartQuote--;
+    } else if (char === '"') {
+      inStraightQuote = !inStraightQuote;
+    }
+
+    // 2. Check for Sentence End
+    if (isPunctuation(char)) {
+      // 2a. Consume continuous punctuation (e.g. !!! or 。。。)
+      while (i + 1 < text.length && isPunctuation(text[i+1])) {
+        const nextChar = text[i+1];
+        buffer += nextChar;
+        i++;
+      }
+
+      // 2b. Consume closing brackets/quotes immediately following
+      while (i + 1 < text.length && isClosingPunctuation(text[i+1])) {
+        const nextChar = text[i+1];
+        buffer += nextChar;
+        
+        // IMPORTANT: Update state for consumed closing chars so we know we are 'out'
+        if (isCloser(nextChar)) {
+           if (inSmartQuote > 0) inSmartQuote--;
+        } else if (nextChar === '"') {
+           inStraightQuote = !inStraightQuote;
+        }
+        
+        i++;
+      }
+
+      // 3. Determine if we should split
+      // Only split if we are NOT inside quotes
+      if (inSmartQuote === 0 && !inStraightQuote) {
+        chunks.push(buffer.trim());
+        buffer = '';
+      }
+    }
+  }
+
+  // Push remaining buffer
+  if (buffer.trim()) {
+    chunks.push(buffer.trim());
+  }
+
+  // Join with double newlines
+  return chunks.filter(c => c.length > 0).join('\n\n');
 };
 
 export const countSentences = (text: string): number => {
-  // Count matches of sentence endings including their closing quotes
-  // This provides a more accurate count than just counting dots.
-  const matches = text.match(/[。\.?!？！][”"’'\)）\]】]*/g);
+  // Simple approximation for UI stats
+  const matches = text.match(/[。\.?!？！]+/g);
   return matches ? matches.length : 0;
 };
